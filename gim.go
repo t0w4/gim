@@ -109,6 +109,7 @@ func makeFileWindow(fileName string, row int, column int) {
 		}
 		fmt.Printf("%s\n", string(line))
 	}
+	fmt.Print("\033[H")
 }
 
 type Size struct {
