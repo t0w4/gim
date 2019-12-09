@@ -2,11 +2,14 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
 	"syscall"
+
+	prompt "github.com/c-bata/go-prompt"
 
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -25,6 +28,34 @@ const (
 )
 
 var fileContents [][]byte
+var normalState *terminal.State
+
+type position struct {
+	X int
+	Y int
+}
+
+func (p *position) moveDown(num int) {
+	p.Y += num
+}
+
+func (p *position) moveUp(num int) {
+	if p.Y == 0 {
+		return
+	}
+	p.Y -= num
+}
+
+func (p *position) moveRight(num int) {
+	p.X += num
+}
+
+func (p *position) moveLeft(num int) {
+	if p.X == 0 {
+		return
+	}
+	p.X -= num
+}
 
 func main() {
 	if !terminal.IsTerminal(syscall.Stdin) {
@@ -94,6 +125,36 @@ func main() {
 			}
 		}()
 
+		normalState, err = terminal.MakeRaw(syscall.Stdin)
+		if err != nil {
+			fmt.Printf("make raw error: %v\n", err)
+			os.Exit(ExitError)
+		}
+		defer terminal.Restore(syscall.Stdin, normalState)
+		bufCh := make(chan []byte, 128)
+		p := position{X: 0, Y: 0}
+		go readBuffer(bufCh)
+		go func() {
+			for {
+				b := <-bufCh
+				switch GetKey(b) {
+				case prompt.Up:
+					p.moveUp(1)
+					fmt.Printf("\033[%d;%dH", p.Y, p.X)
+				case prompt.Down:
+					p.moveDown(1)
+					fmt.Printf("\033[%d;%dH", p.Y, p.X)
+				case prompt.Left:
+					p.moveLeft(1)
+					fmt.Printf("\033[%d;%dH", p.Y, p.X)
+				case prompt.Right:
+					p.moveRight(1)
+					fmt.Printf("\033[%d;%dH", p.Y, p.X)
+				case prompt.ControlC:
+					exitChan <- 130
+				}
+			}
+		}()
 		code := <-exitChan
 		os.Exit(code)
 
@@ -134,4 +195,42 @@ func GetWindowSize(fd int) *Size {
 		os.Exit(ExitError)
 	}
 	return &ws.Size
+}
+
+func readBuffer(bufCh chan []byte) {
+	buf := make([]byte, 1024)
+
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		if n, err := reader.Read(buf); err == nil {
+			bufCh <- buf[:n]
+		}
+	}
+}
+
+func GetKey(b []byte) prompt.Key {
+	for _, k := range asciiSequences {
+		if bytes.Equal(k.ASCIICode, b) {
+			return k.Key
+		}
+	}
+	return prompt.NotDefined
+}
+
+var asciiSequences = []*prompt.ASCIICode{
+	{Key: prompt.Escape, ASCIICode: []byte{0x1b}},
+	{Key: prompt.Up, ASCIICode: []byte{0x1b, 0x5b, 0x41}},
+	{Key: prompt.Down, ASCIICode: []byte{0x1b, 0x5b, 0x42}},
+	{Key: prompt.Right, ASCIICode: []byte{0x1b, 0x5b, 0x43}},
+	{Key: prompt.Left, ASCIICode: []byte{0x1b, 0x5b, 0x44}},
+
+	{Key: prompt.ControlC, ASCIICode: []byte{0x3}},
+
+	// Tmux sends following keystrokes when control+arrow is pressed, but for
+	// Emacs ansi-term sends the same sequences for normal arrow keys. Consider
+	// it a normal arrow press, because that's more important.
+	{Key: prompt.Up, ASCIICode: []byte{0x1b, 0x4f, 0x41}},
+	{Key: prompt.Down, ASCIICode: []byte{0x1b, 0x4f, 0x42}},
+	{Key: prompt.Right, ASCIICode: []byte{0x1b, 0x4f, 0x43}},
+	{Key: prompt.Left, ASCIICode: []byte{0x1b, 0x4f, 0x44}},
 }
