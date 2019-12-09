@@ -24,6 +24,8 @@ const (
 	ExitError
 )
 
+var fileContents [][]byte
+
 func main() {
 	if !terminal.IsTerminal(syscall.Stdin) {
 		fmt.Println(NotTerminalWarning)
@@ -42,6 +44,21 @@ func main() {
 			fmt.Printf("file stat error: %v\n", err)
 			os.Exit(ExitError)
 		}
+		file, err := os.Open(fileName)
+		if err != nil {
+			fmt.Printf("file open error: %v\n", err)
+			os.Exit(ExitError)
+		}
+		defer file.Close()
+
+		rd := bufio.NewReader(file)
+		for {
+			line, _, err := rd.ReadLine()
+			if err == io.EOF {
+				break
+			}
+			fileContents = append(fileContents, line)
+		}
 
 		signalChan := make(chan os.Signal, 1)
 		// catch SIGINT(Ctrl+C), KILL signal, and window size changes
@@ -52,7 +69,7 @@ func main() {
 			syscall.SIGWINCH,
 		)
 		ws := GetWindowSize(syscall.Stdin)
-		makeFileWindow(fileName, ws.Row, ws.Column)
+		makeFileWindow(ws.Column)
 
 		exitChan := make(chan int)
 		go func() {
@@ -69,7 +86,7 @@ func main() {
 
 				case syscall.SIGWINCH:
 					ws := GetWindowSize(syscall.Stdin)
-					makeFileWindow(fileName, ws.Row, ws.Column)
+					makeFileWindow(ws.Column)
 
 				default:
 					exitChan <- 1
@@ -87,27 +104,14 @@ func main() {
 	os.Exit(ExitOk)
 }
 
-func makeFileWindow(fileName string, row int, column int) {
-	file, err := os.Open(fileName)
-	if err != nil {
-		fmt.Printf("file open error: %v\n", err)
-		os.Exit(ExitError)
-	}
-	rd := bufio.NewReader(file)
-
+func makeFileWindow(column int) {
 	fmt.Print("\033[H\033[2J")
 	for i := 0; i < column-1; i++ {
-		line, _, err := rd.ReadLine()
-		if err == io.EOF {
+		if len(fileContents) <= i {
 			fmt.Println("")
-			continue
+		} else {
+			fmt.Printf("%s\n", fileContents[i])
 		}
-
-		if err != nil {
-			fmt.Fprintf(os.Stdout, "read line err : %v\n", err)
-			os.Exit(ExitError)
-		}
-		fmt.Printf("%s\n", string(line))
 	}
 	fmt.Print("\033[H")
 }
