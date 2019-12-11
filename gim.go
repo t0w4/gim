@@ -116,6 +116,9 @@ func main() {
 					exitChan <- 143
 
 				case syscall.SIGWINCH:
+					// In raw mode, the file content view will be corrupted,
+					// so return to normal mode.
+					terminal.Restore(syscall.Stdin, normalState)
 					ws := GetWindowSize(syscall.Stdin)
 					makeFileWindow(ws.Column)
 
@@ -125,17 +128,16 @@ func main() {
 			}
 		}()
 
-		normalState, err = terminal.MakeRaw(syscall.Stdin)
-		if err != nil {
-			fmt.Printf("make raw error: %v\n", err)
-			os.Exit(ExitError)
-		}
-		defer terminal.Restore(syscall.Stdin, normalState)
 		bufCh := make(chan []byte, 128)
 		p := position{X: 0, Y: 0}
 		go readBuffer(bufCh)
 		go func() {
 			for {
+				normalState, err = terminal.MakeRaw(syscall.Stdin)
+				if err != nil {
+					fmt.Printf("make raw error: %v\n", err)
+					os.Exit(ExitError)
+				}
 				b := <-bufCh
 				switch GetKey(b) {
 				case prompt.Up:
@@ -156,6 +158,7 @@ func main() {
 			}
 		}()
 		code := <-exitChan
+		terminal.Restore(syscall.Stdin, normalState)
 		os.Exit(code)
 
 	default:
