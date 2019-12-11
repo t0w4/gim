@@ -29,6 +29,7 @@ const (
 
 var fileContents [][]byte
 var normalState *terminal.State
+var insertMode = false
 
 type position struct {
 	X int
@@ -154,11 +155,18 @@ func main() {
 					fmt.Printf("\033[%d;%dH", p.Y, p.X)
 				case prompt.ControlC:
 					exitChan <- 130
+				case prompt.NotDefined:
+					if string(b) == "i" && !insertMode {
+						insertMode = true
+						continue
+					}
+					if insertMode {
+						fmt.Print(string(b))
+					}
 				}
 			}
 		}()
 		code := <-exitChan
-		terminal.Restore(syscall.Stdin, normalState)
 		os.Exit(code)
 
 	default:
