@@ -100,7 +100,11 @@ func main() {
 			syscall.SIGTERM,
 			syscall.SIGWINCH,
 		)
-		ws := GetWindowSize(syscall.Stdin)
+		ws, err := GetWindowSize(syscall.Stdin)
+		if err != nil {
+			fmt.Printf("get window sieze error: %v", err)
+			os.Exit(ExitError)
+		}
 		makeFileWindow(ws.Column)
 
 		exitChan := make(chan int)
@@ -120,7 +124,11 @@ func main() {
 					// In raw mode, the file content view will be corrupted,
 					// so return to normal mode.
 					terminal.Restore(syscall.Stdin, normalState)
-					ws := GetWindowSize(syscall.Stdin)
+					ws, err := GetWindowSize(syscall.Stdin)
+					if err != nil {
+						fmt.Printf("get window sieze error: %v", err)
+						os.Exit(ExitError)
+					}
 					makeFileWindow(ws.Column)
 
 				default:
@@ -197,15 +205,14 @@ type Window struct {
 	Size
 }
 
-func GetWindowSize(fd int) *Size {
+func GetWindowSize(fd int) (*Size, error) {
 	ws := &Window{}
 	var err error
 	ws.Row, ws.Column, err = terminal.GetSize(fd)
 	if err != nil {
-		fmt.Printf("get window sieze error: %v", err)
-		os.Exit(ExitError)
+		return nil, err
 	}
-	return &ws.Size
+	return &ws.Size, nil
 }
 
 func readBuffer(bufCh chan []byte) {
