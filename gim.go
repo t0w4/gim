@@ -101,7 +101,7 @@ func main() {
 			syscall.SIGTERM,
 			syscall.SIGWINCH,
 		)
-		ws, err := window.GetWindowSize(syscall.Stdin)
+		ws, err := window.GetSize(syscall.Stdin)
 		if err != nil {
 			fmt.Printf("get window sieze error: %v", err)
 			os.Exit(ExitError)
@@ -125,7 +125,7 @@ func main() {
 					// In raw mode, the file content view will be corrupted,
 					// so return to normal mode.
 					terminal.Restore(syscall.Stdin, normalState)
-					ws, err := window.GetWindowSize(syscall.Stdin)
+					ws, err := window.GetSize(syscall.Stdin)
 					if err != nil {
 						fmt.Printf("get window sieze error: %v", err)
 						os.Exit(ExitError)

@@ -11,7 +11,7 @@ type Window struct {
 	Size
 }
 
-func GetWindowSize(fd int) (*Size, error) {
+func GetSize(fd int) (*Size, error) {
 	ws := &Window{}
 	var err error
 	ws.Row, ws.Column, err = terminal.GetSize(fd)
