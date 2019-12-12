@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"gim/window"
 	"io"
 	"os"
 	"os/signal"
@@ -100,7 +101,7 @@ func main() {
 			syscall.SIGTERM,
 			syscall.SIGWINCH,
 		)
-		ws, err := GetWindowSize(syscall.Stdin)
+		ws, err := window.GetWindowSize(syscall.Stdin)
 		if err != nil {
 			fmt.Printf("get window sieze error: %v", err)
 			os.Exit(ExitError)
@@ -124,7 +125,7 @@ func main() {
 					// In raw mode, the file content view will be corrupted,
 					// so return to normal mode.
 					terminal.Restore(syscall.Stdin, normalState)
-					ws, err := GetWindowSize(syscall.Stdin)
+					ws, err := window.GetWindowSize(syscall.Stdin)
 					if err != nil {
 						fmt.Printf("get window sieze error: %v", err)
 						os.Exit(ExitError)
@@ -194,25 +195,6 @@ func makeFileWindow(column int) {
 		}
 	}
 	fmt.Print("\033[H")
-}
-
-type Size struct {
-	Row    int
-	Column int
-}
-
-type Window struct {
-	Size
-}
-
-func GetWindowSize(fd int) (*Size, error) {
-	ws := &Window{}
-	var err error
-	ws.Row, ws.Column, err = terminal.GetSize(fd)
-	if err != nil {
-		return nil, err
-	}
-	return &ws.Size, nil
 }
 
 func readBuffer(bufCh chan []byte) {
