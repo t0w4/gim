@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"gim/position"
 	"gim/window"
 	"io"
 	"os"
@@ -31,33 +32,6 @@ const (
 var fileContents [][]byte
 var normalState *terminal.State
 var insertMode = false
-
-type position struct {
-	X int
-	Y int
-}
-
-func (p *position) moveDown(num int) {
-	p.Y += num
-}
-
-func (p *position) moveUp(num int) {
-	if p.Y == 0 {
-		return
-	}
-	p.Y -= num
-}
-
-func (p *position) moveRight(num int) {
-	p.X += num
-}
-
-func (p *position) moveLeft(num int) {
-	if p.X == 0 {
-		return
-	}
-	p.X -= num
-}
 
 func main() {
 	if !terminal.IsTerminal(syscall.Stdin) {
@@ -139,7 +113,7 @@ func main() {
 		}()
 
 		bufCh := make(chan []byte, 128)
-		p := position{X: 0, Y: 0}
+		p := position.Position{X: 0, Y: 0}
 		go readBuffer(bufCh)
 		go func() {
 			for {
@@ -151,16 +125,16 @@ func main() {
 				b := <-bufCh
 				switch GetKey(b) {
 				case prompt.Up:
-					p.moveUp(1)
+					p.MoveUp(1)
 					fmt.Printf("\033[%d;%dH", p.Y, p.X)
 				case prompt.Down:
-					p.moveDown(1)
+					p.MoveDown(1)
 					fmt.Printf("\033[%d;%dH", p.Y, p.X)
 				case prompt.Left:
-					p.moveLeft(1)
+					p.MoveLeft(1)
 					fmt.Printf("\033[%d;%dH", p.Y, p.X)
 				case prompt.Right:
-					p.moveRight(1)
+					p.MoveRight(1)
 					fmt.Printf("\033[%d;%dH", p.Y, p.X)
 				case prompt.ControlC:
 					exitChan <- 130
