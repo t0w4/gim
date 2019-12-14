@@ -105,7 +105,11 @@ func main() {
 						os.Exit(ExitError)
 					}
 					makeFileWindow(ws.Column)
-
+					normalState, err = terminal.MakeRaw(syscall.Stdin)
+					if err != nil {
+						fmt.Printf("make raw error: %v\n", err)
+						os.Exit(ExitError)
+					}
 				default:
 					exitChan <- 1
 				}
