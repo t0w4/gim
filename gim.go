@@ -75,12 +75,16 @@ func main() {
 			syscall.SIGTERM,
 			syscall.SIGWINCH,
 		)
-		ws, err := window.GetSize(syscall.Stdin)
+
+		// create window
+		win := window.Window{Output: os.Stdout}
+
+		err = win.SetSize(syscall.Stdin)
 		if err != nil {
-			fmt.Printf("get window sieze error: %v", err)
+			fmt.Printf("set window sieze error: %v", err)
 			os.Exit(ExitError)
 		}
-		makeFileWindow(ws.Column)
+		win.PrintFileContents(fileContents)
 
 		exitChan := make(chan int)
 		go func() {
@@ -99,12 +103,12 @@ func main() {
 					// In raw mode, the file content view will be corrupted,
 					// so return to normal mode.
 					terminal.Restore(syscall.Stdin, normalState)
-					ws, err := window.GetSize(syscall.Stdin)
+					err := win.SetSize(syscall.Stdin)
 					if err != nil {
-						fmt.Printf("get window sieze error: %v", err)
+						fmt.Printf("set window sieze error: %v", err)
 						os.Exit(ExitError)
 					}
-					makeFileWindow(ws.Column)
+					win.PrintFileContents(fileContents)
 					normalState, err = terminal.MakeRaw(syscall.Stdin)
 					if err != nil {
 						fmt.Printf("make raw error: %v\n", err)
@@ -161,18 +165,6 @@ func main() {
 		os.Exit(ExitError)
 	}
 	os.Exit(ExitOk)
-}
-
-func makeFileWindow(column int) {
-	fmt.Print("\033[H\033[2J")
-	for i := 0; i < column-1; i++ {
-		if len(fileContents) <= i {
-			fmt.Println("")
-		} else {
-			fmt.Printf("%s\n", fileContents[i])
-		}
-	}
-	fmt.Print("\033[H")
 }
 
 func readBuffer(bufCh chan []byte) {

@@ -1,6 +1,11 @@
 package window
 
-import "golang.org/x/crypto/ssh/terminal"
+import (
+	"fmt"
+	"io"
+
+	"golang.org/x/crypto/ssh/terminal"
+)
 
 type Size struct {
 	Row    int
@@ -9,14 +14,29 @@ type Size struct {
 
 type Window struct {
 	Size
+	Output io.Writer
 }
 
-func GetSize(fd int) (*Size, error) {
-	ws := &Window{}
+func (w *Window) SetSize(fd int) error {
 	var err error
-	ws.Row, ws.Column, err = terminal.GetSize(fd)
+	w.Column, w.Row, err = terminal.GetSize(fd)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &ws.Size, nil
+	return nil
+}
+
+// PrintFileContents outputs the contents passed by fc (usually the contents of the read file)
+// to the location specified by Output.
+// The file contents are not printed  on the last line.
+func (w *Window) PrintFileContents(fc [][]byte) {
+	fmt.Fprint(w.Output, "\033[H\033[2J")
+	for i := 0; i < w.Row-1; i++ {
+		if len(fc) <= i {
+			fmt.Fprintln(w.Output, "")
+		} else {
+			fmt.Fprintf(w.Output, "%s\n", fc[i])
+		}
+	}
+	fmt.Fprint(w.Output, "\033[H")
 }
