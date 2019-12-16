@@ -14,7 +14,8 @@ type Size struct {
 
 type Window struct {
 	Size
-	Output io.Writer
+	Output       io.Writer
+	FileContents [][]byte
 }
 
 func (w *Window) SetSize(fd int) error {
@@ -29,13 +30,13 @@ func (w *Window) SetSize(fd int) error {
 // PrintFileContents outputs the contents passed by fc (usually the contents of the read file)
 // to the location specified by Output.
 // The file contents are not printed  on the last line.
-func (w *Window) PrintFileContents(fc [][]byte) {
+func (w *Window) PrintFileContents() {
 	fmt.Fprint(w.Output, "\033[H\033[2J")
 	for i := 0; i < w.Row-1; i++ {
-		if len(fc) <= i {
+		if len(w.FileContents) <= i {
 			fmt.Fprintln(w.Output, "")
 		} else {
-			fmt.Fprintf(w.Output, "%s\n", fc[i])
+			fmt.Fprintf(w.Output, "%s\n", w.FileContents[i])
 		}
 	}
 	fmt.Fprint(w.Output, "\033[H")

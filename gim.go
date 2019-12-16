@@ -29,7 +29,6 @@ const (
 	ExitError
 )
 
-var fileContents [][]byte
 var normalState *terminal.State
 var insertMode = false
 
@@ -42,6 +41,18 @@ func main() {
 	case 1:
 		fmt.Println("no arg")
 	case 2:
+		signalChan := make(chan os.Signal, 1)
+		// catch SIGINT(Ctrl+C), KILL signal, and window size changes
+		signal.Notify(
+			signalChan,
+			syscall.SIGINT,
+			syscall.SIGTERM,
+			syscall.SIGWINCH,
+		)
+
+		// create window
+		win := window.Window{Output: os.Stdout}
+
 		fileName := os.Args[1]
 		_, err := os.Stat(fileName)
 		if err == os.ErrNotExist {
@@ -64,27 +75,15 @@ func main() {
 			if err == io.EOF {
 				break
 			}
-			fileContents = append(fileContents, line)
+			win.FileContents = append(win.FileContents, line)
 		}
-
-		signalChan := make(chan os.Signal, 1)
-		// catch SIGINT(Ctrl+C), KILL signal, and window size changes
-		signal.Notify(
-			signalChan,
-			syscall.SIGINT,
-			syscall.SIGTERM,
-			syscall.SIGWINCH,
-		)
-
-		// create window
-		win := window.Window{Output: os.Stdout}
 
 		err = win.SetSize(syscall.Stdin)
 		if err != nil {
 			fmt.Printf("set window sieze error: %v", err)
 			os.Exit(ExitError)
 		}
-		win.PrintFileContents(fileContents)
+		win.PrintFileContents()
 
 		exitChan := make(chan int)
 		go func() {
@@ -108,7 +107,7 @@ func main() {
 						fmt.Printf("set window sieze error: %v", err)
 						os.Exit(ExitError)
 					}
-					win.PrintFileContents(fileContents)
+					win.PrintFileContents()
 					normalState, err = terminal.MakeRaw(syscall.Stdin)
 					if err != nil {
 						fmt.Printf("make raw error: %v\n", err)
@@ -136,25 +135,25 @@ func main() {
 					if p.Y == 1 {
 						continue
 					}
-					if len(fileContents[p.Y-2]) < p.X {
-						if len(fileContents[p.Y-2]) == 0 {
+					if len(win.FileContents[p.Y-2]) < p.X {
+						if len(win.FileContents[p.Y-2]) == 0 {
 							p.X = 1
 						} else {
-							p.X = len(fileContents[p.Y-2])
+							p.X = len(win.FileContents[p.Y-2])
 						}
 					}
 					p.MoveUp(1)
 					fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Up    ", win.Row, 0, p.X, p.Y)
 					fmt.Printf("\033[%d;%dH", p.Y, p.X)
 				case prompt.Down:
-					if len(fileContents) == p.Y {
+					if len(win.FileContents) == p.Y {
 						continue
 					}
-					if len(fileContents[p.Y]) < p.X {
-						if len(fileContents[p.Y]) == 0 {
+					if len(win.FileContents[p.Y]) < p.X {
+						if len(win.FileContents[p.Y]) == 0 {
 							p.X = 1
 						} else {
-							p.X = len(fileContents[p.Y])
+							p.X = len(win.FileContents[p.Y])
 						}
 					}
 					p.MoveDown(1)
@@ -165,7 +164,7 @@ func main() {
 					fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Left  ", win.Row, 0, p.X, p.Y)
 					fmt.Printf("\033[%d;%dH", p.Y, p.X)
 				case prompt.Right:
-					if len(fileContents[p.Y-1]) <= p.X {
+					if len(win.FileContents[p.Y-1]) <= p.X {
 						fmt.Printf("\033[%d;%dH", p.Y, p.X)
 						continue
 					}
@@ -224,14 +223,5 @@ var asciiSequences = []*prompt.ASCIICode{
 	{Key: prompt.Down, ASCIICode: []byte{0x1b, 0x5b, 0x42}},
 	{Key: prompt.Right, ASCIICode: []byte{0x1b, 0x5b, 0x43}},
 	{Key: prompt.Left, ASCIICode: []byte{0x1b, 0x5b, 0x44}},
-
 	{Key: prompt.ControlC, ASCIICode: []byte{0x3}},
-
-	//// Tmux sends following keystrokes when control+arrow is pressed, but for
-	//// Emacs ansi-term sends the same sequences for normal arrow keys. Consider
-	//// it a normal arrow press, because that's more important.
-	//{Key: prompt.Up, ASCIICode: []byte{0x1b, 0x4f, 0x41}},
-	//{Key: prompt.Down, ASCIICode: []byte{0x1b, 0x4f, 0x42}},
-	//{Key: prompt.Right, ASCIICode: []byte{0x1b, 0x4f, 0x43}},
-	//{Key: prompt.Left, ASCIICode: []byte{0x1b, 0x4f, 0x44}},
 }
