@@ -121,7 +121,7 @@ func main() {
 		}()
 
 		bufCh := make(chan []byte, 128)
-		p := position.Position{X: 0, Y: 0}
+		p := position.Position{X: 1, Y: 1}
 		go readBuffer(bufCh)
 		go func() {
 			for {
@@ -133,16 +133,44 @@ func main() {
 				b := <-bufCh
 				switch GetKey(b) {
 				case prompt.Up:
+					if p.Y == 1 {
+						continue
+					}
+					if len(fileContents[p.Y-2]) < p.X {
+						if len(fileContents[p.Y-2]) == 0 {
+							p.X = 1
+						} else {
+							p.X = len(fileContents[p.Y-2])
+						}
+					}
 					p.MoveUp(1)
+					fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Up    ", win.Row, 0, p.X, p.Y)
 					fmt.Printf("\033[%d;%dH", p.Y, p.X)
 				case prompt.Down:
+					if len(fileContents) == p.Y {
+						continue
+					}
+					if len(fileContents[p.Y]) < p.X {
+						if len(fileContents[p.Y]) == 0 {
+							p.X = 1
+						} else {
+							p.X = len(fileContents[p.Y])
+						}
+					}
 					p.MoveDown(1)
+					fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Down  ", win.Row, 0, p.X, p.Y)
 					fmt.Printf("\033[%d;%dH", p.Y, p.X)
 				case prompt.Left:
 					p.MoveLeft(1)
+					fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Left  ", win.Row, 0, p.X, p.Y)
 					fmt.Printf("\033[%d;%dH", p.Y, p.X)
 				case prompt.Right:
+					if len(fileContents[p.Y-1]) <= p.X {
+						fmt.Printf("\033[%d;%dH", p.Y, p.X)
+						continue
+					}
 					p.MoveRight(1)
+					fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Right", win.Row, 0, p.X, p.Y)
 					fmt.Printf("\033[%d;%dH", p.Y, p.X)
 				case prompt.ControlC:
 					exitChan <- 130
@@ -153,6 +181,9 @@ func main() {
 					}
 					if insertMode {
 						fmt.Print(string(b))
+					} else {
+						fmt.Printf("\033[%d;%dH> X: %d, Y: %d, input: %s     ", win.Row, 0, p.X, p.Y, string(b))
+						fmt.Printf("\033[%d;%dH", p.Y, p.X)
 					}
 				}
 			}
@@ -196,11 +227,11 @@ var asciiSequences = []*prompt.ASCIICode{
 
 	{Key: prompt.ControlC, ASCIICode: []byte{0x3}},
 
-	// Tmux sends following keystrokes when control+arrow is pressed, but for
-	// Emacs ansi-term sends the same sequences for normal arrow keys. Consider
-	// it a normal arrow press, because that's more important.
-	{Key: prompt.Up, ASCIICode: []byte{0x1b, 0x4f, 0x41}},
-	{Key: prompt.Down, ASCIICode: []byte{0x1b, 0x4f, 0x42}},
-	{Key: prompt.Right, ASCIICode: []byte{0x1b, 0x4f, 0x43}},
-	{Key: prompt.Left, ASCIICode: []byte{0x1b, 0x4f, 0x44}},
+	//// Tmux sends following keystrokes when control+arrow is pressed, but for
+	//// Emacs ansi-term sends the same sequences for normal arrow keys. Consider
+	//// it a normal arrow press, because that's more important.
+	//{Key: prompt.Up, ASCIICode: []byte{0x1b, 0x4f, 0x41}},
+	//{Key: prompt.Down, ASCIICode: []byte{0x1b, 0x4f, 0x42}},
+	//{Key: prompt.Right, ASCIICode: []byte{0x1b, 0x4f, 0x43}},
+	//{Key: prompt.Left, ASCIICode: []byte{0x1b, 0x4f, 0x44}},
 }

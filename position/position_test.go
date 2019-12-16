@@ -16,7 +16,7 @@ func TestPosition_MoveDown(t *testing.T) {
 		args   args
 		want   fields
 	}{
-		{name: "normal test", fields: fields{X: 0, Y: 0}, args: args{num: 1}, want: fields{X: 0, Y: 1}},
+		{name: "normal test", fields: fields{X: 1, Y: 1}, args: args{num: 1}, want: fields{X: 1, Y: 2}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -46,7 +46,7 @@ func TestPosition_MoveUp(t *testing.T) {
 		want   fields
 	}{
 		{name: "normal test", fields: fields{X: 2, Y: 2}, args: args{num: 1}, want: fields{X: 2, Y: 1}},
-		{name: "no change if Y is 0", fields: fields{X: 2, Y: 0}, args: args{num: 1}, want: fields{X: 2, Y: 0}},
+		{name: "no change if Y is 0", fields: fields{X: 2, Y: 1}, args: args{num: 1}, want: fields{X: 2, Y: 1}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -75,7 +75,7 @@ func TestPosition_MoveRight(t *testing.T) {
 		args   args
 		want   fields
 	}{
-		{name: "normal test", fields: fields{X: 0, Y: 0}, args: args{num: 1}, want: fields{X: 1, Y: 0}},
+		{name: "normal test", fields: fields{X: 1, Y: 1}, args: args{num: 1}, want: fields{X: 2, Y: 1}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -105,7 +105,7 @@ func TestPosition_MoveLeft(t *testing.T) {
 		want   fields
 	}{
 		{name: "normal test", fields: fields{X: 2, Y: 2}, args: args{num: 1}, want: fields{X: 1, Y: 2}},
-		{name: "no change if X is 0", fields: fields{X: 0, Y: 2}, args: args{num: 1}, want: fields{X: 0, Y: 2}},
+		{name: "no change if X is 0", fields: fields{X: 1, Y: 2}, args: args{num: 1}, want: fields{X: 1, Y: 2}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

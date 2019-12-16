@@ -10,7 +10,7 @@ func (p *Position) MoveDown(num int) {
 }
 
 func (p *Position) MoveUp(num int) {
-	if p.Y == 0 {
+	if p.Y == 1 {
 		return
 	}
 	p.Y -= num
@@ -21,7 +21,7 @@ func (p *Position) MoveRight(num int) {
 }
 
 func (p *Position) MoveLeft(num int) {
-	if p.X == 0 {
+	if p.X == 1 {
 		return
 	}
 	p.X -= num
