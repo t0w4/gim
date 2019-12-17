@@ -51,7 +51,7 @@ func main() {
 		)
 
 		// create window
-		win := window.Window{Output: os.Stdout}
+		win := window.Window{Input: os.Stdin, Output: os.Stdout}
 
 		fileName := os.Args[1]
 		_, err := os.Stat(fileName)
@@ -121,7 +121,7 @@ func main() {
 
 		bufCh := make(chan []byte, 128)
 		p := position.Position{X: 1, Y: 1}
-		go readBuffer(bufCh)
+		go win.ReadBuffer(bufCh)
 		go func() {
 			for {
 				normalState, err = terminal.MakeRaw(syscall.Stdin)
@@ -195,17 +195,6 @@ func main() {
 		os.Exit(ExitError)
 	}
 	os.Exit(ExitOk)
-}
-
-func readBuffer(bufCh chan []byte) {
-	buf := make([]byte, 1024)
-
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		if n, err := reader.Read(buf); err == nil {
-			bufCh <- buf[:n]
-		}
-	}
 }
 
 func GetKey(b []byte) prompt.Key {

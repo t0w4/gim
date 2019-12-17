@@ -1,6 +1,7 @@
 package window
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 
@@ -14,6 +15,7 @@ type Size struct {
 
 type Window struct {
 	Size
+	Input        io.Reader
 	Output       io.Writer
 	FileContents [][]byte
 }
@@ -40,4 +42,15 @@ func (w *Window) PrintFileContents() {
 		}
 	}
 	fmt.Fprint(w.Output, "\033[H")
+}
+
+func (w *Window) ReadBuffer(bufCh chan []byte) {
+	buf := make([]byte, 1024)
+
+	reader := bufio.NewReader(w.Input)
+	for {
+		if n, err := reader.Read(buf); err == nil {
+			bufCh <- buf[:n]
+		}
+	}
 }
