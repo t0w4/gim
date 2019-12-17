@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -53,4 +54,21 @@ func (w *Window) ReadBuffer(bufCh chan []byte) {
 			bufCh <- buf[:n]
 		}
 	}
+}
+
+func (w *Window) SetFileContents(fileName string) error {
+	file, err := os.Open(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	sc := bufio.NewScanner(file)
+	for sc.Scan() {
+		w.FileContents = append(w.FileContents, []byte(sc.Text()))
+	}
+	if err := sc.Err(); err != nil {
+		return err
+	}
+	return nil
 }

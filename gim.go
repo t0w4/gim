@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"gim/position"
 	"gim/window"
-	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -54,31 +52,12 @@ func main() {
 		win := window.Window{Input: os.Stdin, Output: os.Stdout}
 
 		fileName := os.Args[1]
-		_, err := os.Stat(fileName)
-		if err == os.ErrNotExist {
-			fmt.Printf("%s is not exist\n", fileName)
+		if err := win.SetFileContents(fileName); err != nil {
+			fmt.Println(err)
 			os.Exit(ExitError)
-		} else if err != nil {
-			fmt.Printf("file stat error: %v\n", err)
-			os.Exit(ExitError)
-		}
-		file, err := os.Open(fileName)
-		if err != nil {
-			fmt.Printf("file open error: %v\n", err)
-			os.Exit(ExitError)
-		}
-		defer file.Close()
-
-		rd := bufio.NewReader(file)
-		for {
-			line, _, err := rd.ReadLine()
-			if err == io.EOF {
-				break
-			}
-			win.FileContents = append(win.FileContents, line)
 		}
 
-		err = win.SetSize(syscall.Stdin)
+		err := win.SetSize(syscall.Stdin)
 		if err != nil {
 			fmt.Printf("set window sieze error: %v", err)
 			os.Exit(ExitError)

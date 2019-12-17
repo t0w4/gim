@@ -57,3 +57,55 @@ func TestWindow_PrintFileContents(t *testing.T) {
 		})
 	}
 }
+
+func TestWindow_SetFileContents(t *testing.T) {
+	type args struct {
+		fileName string
+	}
+	tests := []struct {
+		name   string
+		args   args
+		wantFc [][]byte
+	}{
+		{
+			name:   "normal case",
+			args:   args{fileName: "../testdata/test.txt"},
+			wantFc: [][]byte{[]byte("11111"), []byte("2222"), []byte("333"), []byte("44"), []byte(""), []byte("5")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{FileContents: nil}
+			if err := w.SetFileContents(tt.args.fileName); err == nil {
+				for i, bs := range w.FileContents {
+					if !bytes.Equal(bs, tt.wantFc[i]) {
+						t.Errorf("want[%d] = %s, got[%d] = %s", i, string(tt.wantFc[i]), i, string(bs))
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestWindow_SetFileContentsFileExist(t *testing.T) {
+	type args struct {
+		fileName string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{name: "file exists", args: args{fileName: "../testdata/test.txt"}, wantErr: false},
+		{name: "file not exists", args: args{fileName: "../testdata/non_test.txt"}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{}
+			if err := w.SetFileContents(tt.args.fileName); tt.wantErr != (err != nil) {
+				t.Errorf("want: %v, got: %v", tt.wantErr, err != nil)
+			}
+		})
+	}
+
+}
