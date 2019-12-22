@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"gim/position"
 	"gim/window"
 	"os"
 	"os/signal"
@@ -98,7 +97,7 @@ func main() {
 		}()
 
 		bufCh := make(chan []byte, 128)
-		p := position.Position{X: 1, Y: 1}
+		p := window.Position{X: 1, Y: 1}
 		go win.ReadBuffer(bufCh)
 		go func() {
 			for {
@@ -110,9 +109,12 @@ func main() {
 				b := <-bufCh
 				switch win.GetKey(b) {
 				case prompt.Up:
+					// if cursor is top, don't move
 					if p.Y == 1 {
 						continue
 					}
+					// If the number of characters in the line above is smaller than the current X,
+					// the cursor moves to the last column
 					if len(win.FileContents[p.Y-2]) < p.X {
 						if len(win.FileContents[p.Y-2]) == 0 {
 							p.X = 1
