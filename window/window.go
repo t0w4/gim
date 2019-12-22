@@ -2,9 +2,12 @@ package window
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
+
+	prompt "github.com/c-bata/go-prompt"
 
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -14,8 +17,31 @@ type Size struct {
 	Column int
 }
 
+type Prompt struct {
+	mode *terminal.State
+}
+
+func (p *Prompt) GetKey(b []byte) prompt.Key {
+	for _, k := range asciiSequences {
+		if bytes.Equal(k.ASCIICode, b) {
+			return k.Key
+		}
+	}
+	return prompt.NotDefined
+}
+
+var asciiSequences = []*prompt.ASCIICode{
+	{Key: prompt.Escape, ASCIICode: []byte{0x1b}},
+	{Key: prompt.Up, ASCIICode: []byte{0x1b, 0x5b, 0x41}},
+	{Key: prompt.Down, ASCIICode: []byte{0x1b, 0x5b, 0x42}},
+	{Key: prompt.Right, ASCIICode: []byte{0x1b, 0x5b, 0x43}},
+	{Key: prompt.Left, ASCIICode: []byte{0x1b, 0x5b, 0x44}},
+	{Key: prompt.ControlC, ASCIICode: []byte{0x3}},
+}
+
 type Window struct {
 	Size
+	Prompt
 	Input        io.Reader
 	Output       io.Writer
 	FileContents [][]byte

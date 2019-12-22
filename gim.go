@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"gim/position"
 	"gim/window"
@@ -109,7 +108,7 @@ func main() {
 					os.Exit(ExitError)
 				}
 				b := <-bufCh
-				switch GetKey(b) {
+				switch win.GetKey(b) {
 				case prompt.Up:
 					if p.Y == 1 {
 						continue
@@ -174,22 +173,4 @@ func main() {
 		os.Exit(ExitError)
 	}
 	os.Exit(ExitOk)
-}
-
-func GetKey(b []byte) prompt.Key {
-	for _, k := range asciiSequences {
-		if bytes.Equal(k.ASCIICode, b) {
-			return k.Key
-		}
-	}
-	return prompt.NotDefined
-}
-
-var asciiSequences = []*prompt.ASCIICode{
-	{Key: prompt.Escape, ASCIICode: []byte{0x1b}},
-	{Key: prompt.Up, ASCIICode: []byte{0x1b, 0x5b, 0x41}},
-	{Key: prompt.Down, ASCIICode: []byte{0x1b, 0x5b, 0x42}},
-	{Key: prompt.Right, ASCIICode: []byte{0x1b, 0x5b, 0x43}},
-	{Key: prompt.Left, ASCIICode: []byte{0x1b, 0x5b, 0x44}},
-	{Key: prompt.ControlC, ASCIICode: []byte{0x3}},
 }
