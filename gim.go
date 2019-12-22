@@ -26,7 +26,6 @@ const (
 )
 
 var normalState *terminal.State
-var insertMode = false
 
 func main() {
 	if !terminal.IsTerminal(syscall.Stdin) {
@@ -47,7 +46,7 @@ func main() {
 		)
 
 		// create window
-		win := window.Window{Input: os.Stdin, Output: os.Stdout}
+		win := window.NewWindow(os.Stdin, os.Stdout)
 
 		fileName := os.Args[1]
 		if err := win.SetFileContents(fileName); err != nil {
@@ -97,7 +96,6 @@ func main() {
 		}()
 
 		bufCh := make(chan []byte, 128)
-		p := window.Position{X: 1, Y: 1}
 		go win.ReadBuffer(bufCh)
 		go func() {
 			for {
@@ -109,61 +107,17 @@ func main() {
 				b := <-bufCh
 				switch win.GetKey(b) {
 				case prompt.Up:
-					// if cursor is top, don't move
-					if p.Y == 1 {
-						continue
-					}
-					// If the number of characters in the line above is smaller than the current X,
-					// the cursor moves to the last column
-					if len(win.FileContents[p.Y-2]) < p.X {
-						if len(win.FileContents[p.Y-2]) == 0 {
-							p.X = 1
-						} else {
-							p.X = len(win.FileContents[p.Y-2])
-						}
-					}
-					p.MoveUp(1)
-					fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Up    ", win.Row, 0, p.X, p.Y)
-					fmt.Printf("\033[%d;%dH", p.Y, p.X)
+					win.InputtedUp()
 				case prompt.Down:
-					if len(win.FileContents) == p.Y {
-						continue
-					}
-					if len(win.FileContents[p.Y]) < p.X {
-						if len(win.FileContents[p.Y]) == 0 {
-							p.X = 1
-						} else {
-							p.X = len(win.FileContents[p.Y])
-						}
-					}
-					p.MoveDown(1)
-					fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Down  ", win.Row, 0, p.X, p.Y)
-					fmt.Printf("\033[%d;%dH", p.Y, p.X)
+					win.InputtedDown()
 				case prompt.Left:
-					p.MoveLeft(1)
-					fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Left  ", win.Row, 0, p.X, p.Y)
-					fmt.Printf("\033[%d;%dH", p.Y, p.X)
+					win.InputtedLeft()
 				case prompt.Right:
-					if len(win.FileContents[p.Y-1]) <= p.X {
-						fmt.Printf("\033[%d;%dH", p.Y, p.X)
-						continue
-					}
-					p.MoveRight(1)
-					fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Right", win.Row, 0, p.X, p.Y)
-					fmt.Printf("\033[%d;%dH", p.Y, p.X)
+					win.InputtedRight()
 				case prompt.ControlC:
 					exitChan <- 130
 				case prompt.NotDefined:
-					if string(b) == "i" && !insertMode {
-						insertMode = true
-						continue
-					}
-					if insertMode {
-						fmt.Print(string(b))
-					} else {
-						fmt.Printf("\033[%d;%dH> X: %d, Y: %d, input: %s     ", win.Row, 0, p.X, p.Y, string(b))
-						fmt.Printf("\033[%d;%dH", p.Y, p.X)
-					}
+					win.InputtedOther(b)
 				}
 			}
 		}()

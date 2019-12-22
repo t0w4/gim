@@ -26,11 +26,99 @@ var asciiSequences = []*prompt.ASCIICode{
 	{Key: prompt.ControlC, ASCIICode: []byte{0x3}},
 }
 
+const (
+	normalMode = iota
+	insertMode
+)
+
 type Window struct {
 	Size
 	Input        *os.File  // Adopts os.File to use Fd () , ex) Stdin
 	Output       io.Writer // ex) Stdout
 	FileContents [][]byte
+	position     Position
+	mode         int // ex) insert mode
+}
+
+func NewWindow(input *os.File, output io.Writer) *Window {
+	return &Window{
+		Input:        input,
+		Output:       output,
+		FileContents: nil,
+		position:     Position{X: 1, Y: 1},
+		mode:         normalMode,
+	}
+}
+
+func (w *Window) IsInsertMode() bool {
+	if w.mode == insertMode {
+		return true
+	}
+	return false
+}
+
+func (w *Window) InputtedUp() {
+	// if cursor is top, don't move
+	if w.position.Y == 1 {
+		return
+	}
+	// If the number of characters in the line above is smaller than the current X,
+	// the cursor moves to the last column
+	if len(w.FileContents[w.position.Y-2]) < w.position.X {
+		if len(w.FileContents[w.position.Y-2]) == 0 {
+			w.position.X = 1
+		} else {
+			w.position.X = len(w.FileContents[w.position.Y-2])
+		}
+	}
+	w.position.MoveUp(1)
+	fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Up    ", w.Row, 0, w.position.X, w.position.Y)
+	fmt.Printf("\033[%d;%dH", w.position.Y, w.position.X)
+}
+
+func (w *Window) InputtedDown() {
+	if len(w.FileContents) == w.position.Y {
+		return
+	}
+	if len(w.FileContents[w.position.Y]) < w.position.X {
+		if len(w.FileContents[w.position.Y]) == 0 {
+			w.position.X = 1
+		} else {
+			w.position.X = len(w.FileContents[w.position.Y])
+		}
+	}
+	w.position.MoveDown(1)
+	fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Down  ", w.Row, 0, w.position.X, w.position.Y)
+	fmt.Printf("\033[%d;%dH", w.position.Y, w.position.X)
+}
+
+func (w *Window) InputtedLeft() {
+	w.position.MoveLeft(1)
+	fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Left  ", w.Row, 0, w.position.X, w.position.Y)
+	fmt.Printf("\033[%d;%dH", w.position.Y, w.position.X)
+}
+
+func (w *Window) InputtedRight() {
+	if len(w.FileContents[w.position.Y-1]) <= w.position.X {
+		fmt.Printf("\033[%d;%dH", w.position.Y, w.position.X)
+		return
+	}
+	w.position.MoveRight(1)
+	fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Right", w.Row, 0, w.position.X, w.position.Y)
+	fmt.Printf("\033[%d;%dH", w.position.Y, w.position.X)
+}
+
+func (w *Window) InputtedOther(b []byte) {
+	if string(b) == "i" && !w.IsInsertMode() {
+		w.mode = insertMode
+		return
+	}
+	if w.IsInsertMode() {
+		fmt.Print(string(b))
+	} else {
+		fmt.Printf("\033[%d;%dH> X: %d, Y: %d, input: %s     ", w.Row, 0, w.position.X, w.position.Y, string(b))
+		fmt.Printf("\033[%d;%dH", w.position.Y, w.position.X)
+	}
 }
 
 func (w *Window) GetKey(b []byte) prompt.Key {
