@@ -129,10 +129,10 @@ func TestGetKey(t *testing.T) {
 		{name: "type ControlC", args: args{b: []byte{0x3}}, want: prompt.ControlC},
 		{name: "type other(A)", args: args{b: []byte("A")}, want: prompt.NotDefined},
 	}
-	p := Prompt{}
+	w := &Window{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := p.GetKey(tt.args.b); got != tt.want {
+			if got := w.GetKey(tt.args.b); got != tt.want {
 				t.Errorf("GetKey() = %v, want %v", got, tt.want)
 			}
 		})

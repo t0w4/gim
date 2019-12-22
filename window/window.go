@@ -17,19 +17,6 @@ type Size struct {
 	Column int
 }
 
-type Prompt struct {
-	mode *terminal.State
-}
-
-func (p *Prompt) GetKey(b []byte) prompt.Key {
-	for _, k := range asciiSequences {
-		if bytes.Equal(k.ASCIICode, b) {
-			return k.Key
-		}
-	}
-	return prompt.NotDefined
-}
-
 var asciiSequences = []*prompt.ASCIICode{
 	{Key: prompt.Escape, ASCIICode: []byte{0x1b}},
 	{Key: prompt.Up, ASCIICode: []byte{0x1b, 0x5b, 0x41}},
@@ -41,15 +28,23 @@ var asciiSequences = []*prompt.ASCIICode{
 
 type Window struct {
 	Size
-	Prompt
-	Input        io.Reader
-	Output       io.Writer
+	Input        *os.File  // Adopts os.File to use Fd () , ex) Stdin
+	Output       io.Writer // ex) Stdout
 	FileContents [][]byte
 }
 
-func (w *Window) SetSize(fd int) error {
+func (w *Window) GetKey(b []byte) prompt.Key {
+	for _, k := range asciiSequences {
+		if bytes.Equal(k.ASCIICode, b) {
+			return k.Key
+		}
+	}
+	return prompt.NotDefined
+}
+
+func (w *Window) SetSize() error {
 	var err error
-	w.Column, w.Row, err = terminal.GetSize(fd)
+	w.Column, w.Row, err = terminal.GetSize(int(w.Input.Fd()))
 	if err != nil {
 		return err
 	}

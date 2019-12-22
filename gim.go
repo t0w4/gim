@@ -56,7 +56,7 @@ func main() {
 			os.Exit(ExitError)
 		}
 
-		err := win.SetSize(syscall.Stdin)
+		err := win.SetSize()
 		if err != nil {
 			fmt.Printf("set window sieze error: %v", err)
 			os.Exit(ExitError)
@@ -80,7 +80,7 @@ func main() {
 					// In raw mode, the file content view will be corrupted,
 					// so return to normal mode.
 					terminal.Restore(syscall.Stdin, normalState)
-					err := win.SetSize(syscall.Stdin)
+					err := win.SetSize()
 					if err != nil {
 						fmt.Printf("set window sieze error: %v", err)
 						os.Exit(ExitError)
