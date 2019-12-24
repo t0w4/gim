@@ -72,8 +72,8 @@ func (w *Window) InputtedUp() {
 		}
 	}
 	w.position.MoveUp(1)
-	fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Up    ", w.Row, 0, w.position.X, w.position.Y)
-	fmt.Printf("\033[%d;%dH", w.position.Y, w.position.X)
+	fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, Up    ", w.Row, 0, w.position.X, w.position.Y)
+	fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
 }
 
 func (w *Window) InputtedDown() {
@@ -88,24 +88,24 @@ func (w *Window) InputtedDown() {
 		}
 	}
 	w.position.MoveDown(1)
-	fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Down  ", w.Row, 0, w.position.X, w.position.Y)
-	fmt.Printf("\033[%d;%dH", w.position.Y, w.position.X)
+	fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, Down  ", w.Row, 0, w.position.X, w.position.Y)
+	fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
 }
 
 func (w *Window) InputtedLeft() {
 	w.position.MoveLeft(1)
-	fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Left  ", w.Row, 0, w.position.X, w.position.Y)
-	fmt.Printf("\033[%d;%dH", w.position.Y, w.position.X)
+	fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, Left  ", w.Row, 0, w.position.X, w.position.Y)
+	fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
 }
 
 func (w *Window) InputtedRight() {
 	if len(w.FileContents[w.position.Y-1]) <= w.position.X {
-		fmt.Printf("\033[%d;%dH", w.position.Y, w.position.X)
+		fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
 		return
 	}
 	w.position.MoveRight(1)
-	fmt.Printf("\033[%d;%dH> X: %d, Y: %d, Right", w.Row, 0, w.position.X, w.position.Y)
-	fmt.Printf("\033[%d;%dH", w.position.Y, w.position.X)
+	fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, Right", w.Row, 0, w.position.X, w.position.Y)
+	fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
 }
 
 func (w *Window) InputtedOther(b []byte) {
@@ -114,10 +114,10 @@ func (w *Window) InputtedOther(b []byte) {
 		return
 	}
 	if w.IsInsertMode() {
-		fmt.Print(string(b))
+		fmt.Fprintf(w.Output, string(b))
 	} else {
-		fmt.Printf("\033[%d;%dH> X: %d, Y: %d, input: %s     ", w.Row, 0, w.position.X, w.position.Y, string(b))
-		fmt.Printf("\033[%d;%dH", w.position.Y, w.position.X)
+		fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, input: %s     ", w.Row, 0, w.position.X, w.position.Y, string(b))
+		fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
 	}
 }
 

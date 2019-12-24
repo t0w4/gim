@@ -3,10 +3,496 @@ package window
 import (
 	"bytes"
 	"io"
+	"os"
 	"testing"
 
 	prompt "github.com/c-bata/go-prompt"
 )
+
+func TestNewWindow(t *testing.T) {
+	tests := []struct {
+		name     string
+		wantX    int
+		wantY    int
+		wantMode int
+	}{
+		{name: "normal test", wantX: 1, wantY: 1, wantMode: normalMode},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := NewWindow(os.Stdin, os.Stdout)
+			if got.position.X != tt.wantX || got.position.Y != tt.wantY {
+				t.Errorf(
+					"got: X=%d, Y=%d, want: X=%d, Y=%d", got.position.X, got.position.Y, tt.wantX, tt.wantY)
+			}
+		})
+	}
+}
+
+func TestWindow_IsInsertMode(t *testing.T) {
+	type fields struct {
+		mode int
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{name: "normal mode", fields: fields{mode: normalMode}, want: false},
+		{name: "insert mode", fields: fields{mode: insertMode}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{
+				mode: tt.fields.mode,
+			}
+			if got := w.IsInsertMode(); got != tt.want {
+				t.Errorf("IsInsertMode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestWindow_InputtedUp(t *testing.T) {
+	type fields struct {
+		Size         Size
+		FileContents [][]byte
+		position     Position
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantX   int
+		wantY   int
+		wantOut []byte
+	}{
+		{
+			name: "Y=1",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 1, Y: 1},
+			},
+			wantX:   1,
+			wantY:   1,
+			wantOut: []byte(""),
+		},
+		{
+			name: "Upper character length is greater than current X",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 7, Y: 3},
+			},
+			wantX:   7,
+			wantY:   2,
+			wantOut: []byte("\033[100;0H> X: 7, Y: 2, Up    \033[2;7H"),
+		},
+		{
+			name: "Upper character length is equal current X",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 8, Y: 3},
+			},
+			wantX:   8,
+			wantY:   2,
+			wantOut: []byte("\033[100;0H> X: 8, Y: 2, Up    \033[2;8H"),
+		},
+		{
+			name: "Upper character length is less than current X (not zero)",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 10, Y: 3},
+			},
+			wantX:   8,
+			wantY:   2,
+			wantOut: []byte("\033[100;0H> X: 8, Y: 2, Up    \033[2;8H"),
+		},
+		{
+			name: "Upper character length is less than current X (zero)",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte(""), []byte("This is a pen!")},
+				position:     Position{X: 10, Y: 3},
+			},
+			wantX:   1,
+			wantY:   2,
+			wantOut: []byte("\033[100;0H> X: 1, Y: 2, Up    \033[2;1H"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := new(bytes.Buffer)
+			w := &Window{
+				Size:         tt.fields.Size,
+				Output:       out,
+				FileContents: tt.fields.FileContents,
+				position:     tt.fields.position,
+			}
+			w.InputtedUp()
+			if tt.wantX != w.position.X || tt.wantY != w.position.Y {
+				t.Errorf("got: X= %d, Y=%d  want: X=%d, Y=%d", w.position.X, w.position.Y, tt.wantX, tt.wantY)
+			}
+			if out.String() != string(tt.wantOut) {
+				t.Errorf("got: %v, want:  %v", out.Bytes(), tt.wantOut)
+			}
+		})
+	}
+}
+
+func TestWindow_InputtedDown(t *testing.T) {
+	type fields struct {
+		Size         Size
+		FileContents [][]byte
+		position     Position
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantX   int
+		wantY   int
+		wantOut []byte
+	}{
+		{
+			name: "Y= File lines",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 1, Y: 2},
+			},
+			wantX:   1,
+			wantY:   2,
+			wantOut: []byte(""),
+		},
+		{
+			name: "Lower character length is greater than current X",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 7, Y: 1},
+			},
+			wantX:   7,
+			wantY:   2,
+			wantOut: []byte("\033[100;0H> X: 7, Y: 2, Down  \033[2;7H"),
+		},
+		{
+			name: "Lower character length is equal current X",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 8, Y: 1},
+			},
+			wantX:   8,
+			wantY:   2,
+			wantOut: []byte("\033[100;0H> X: 8, Y: 2, Down  \033[2;8H"),
+		},
+		{
+			name: "Lower character length is less than current X (not zero)",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 10, Y: 1},
+			},
+			wantX:   8,
+			wantY:   2,
+			wantOut: []byte("\033[100;0H> X: 8, Y: 2, Down  \033[2;8H"),
+		},
+		{
+			name: "Upper character length is less than current X (zero)",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte(""), []byte("This is a pen!")},
+				position:     Position{X: 10, Y: 1},
+			},
+			wantX:   1,
+			wantY:   2,
+			wantOut: []byte("\033[100;0H> X: 1, Y: 2, Down  \033[2;1H"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := new(bytes.Buffer)
+			w := &Window{
+				Size:         tt.fields.Size,
+				Output:       out,
+				FileContents: tt.fields.FileContents,
+				position:     tt.fields.position,
+			}
+			w.InputtedDown()
+			if tt.wantX != w.position.X || tt.wantY != w.position.Y {
+				t.Errorf("got: X= %d, Y=%d  want: X=%d, Y=%d", w.position.X, w.position.Y, tt.wantX, tt.wantY)
+			}
+			if out.String() != string(tt.wantOut) {
+				t.Errorf("got: %v, want:  %v", out.Bytes(), tt.wantOut)
+			}
+		})
+	}
+}
+
+func TestWindow_InputtedLeft(t *testing.T) {
+	type fields struct {
+		Size         Size
+		FileContents [][]byte
+		position     Position
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantX   int
+		wantY   int
+		wantOut []byte
+	}{
+		{
+			name: "X=1",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob"), []byte("OK ?")},
+				position:     Position{X: 1, Y: 3},
+			},
+			wantX:   1,
+			wantY:   3,
+			wantOut: []byte("\033[100;0H> X: 1, Y: 3, Left  \033[3;1H"),
+		},
+		{
+			name: "X>1",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob"), []byte("OK ?")},
+				position:     Position{X: 3, Y: 3},
+			},
+			wantX:   2,
+			wantY:   3,
+			wantOut: []byte("\033[100;0H> X: 2, Y: 3, Left  \033[3;2H"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := new(bytes.Buffer)
+			w := &Window{
+				Size:         tt.fields.Size,
+				Output:       out,
+				FileContents: tt.fields.FileContents,
+				position:     tt.fields.position,
+			}
+			w.InputtedLeft()
+			if tt.wantX != w.position.X || tt.wantY != w.position.Y {
+				t.Errorf("got: X= %d, Y=%d  want: X=%d, Y=%d", w.position.X, w.position.Y, tt.wantX, tt.wantY)
+			}
+			if out.String() != string(tt.wantOut) {
+				t.Errorf("got: %v, want:  %v", out.Bytes(), tt.wantOut)
+			}
+		})
+	}
+}
+
+func TestWindow_InputtedRight(t *testing.T) {
+	type fields struct {
+		Size         Size
+		FileContents [][]byte
+		position     Position
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantX   int
+		wantY   int
+		wantOut []byte
+	}{
+		{
+			name: "X=character length",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 8, Y: 2},
+			},
+			wantX:   8,
+			wantY:   2,
+			wantOut: []byte("\033[2;8H"),
+		},
+		{
+			name: "X<character length",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 3, Y: 2},
+			},
+			wantX:   4,
+			wantY:   2,
+			wantOut: []byte("\033[100;0H> X: 4, Y: 2, Right\033[2;4H"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := new(bytes.Buffer)
+			w := &Window{
+				Size:         tt.fields.Size,
+				Output:       out,
+				FileContents: tt.fields.FileContents,
+				position:     tt.fields.position,
+			}
+			w.InputtedRight()
+			if tt.wantX != w.position.X || tt.wantY != w.position.Y {
+				t.Errorf("got: X= %d, Y=%d  want: X=%d, Y=%d", w.position.X, w.position.Y, tt.wantX, tt.wantY)
+			}
+			if out.String() != string(tt.wantOut) {
+				t.Errorf("got: %v, want:  %v", out.Bytes(), tt.wantOut)
+			}
+		})
+	}
+}
+
+func TestWindow_InputtedOther(t *testing.T) {
+	type fields struct {
+		Size         Size
+		FileContents [][]byte
+		position     Position
+		mode         int
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		input    []byte
+		wantX    int
+		wantY    int
+		wantOut  []byte
+		wantMode int
+	}{
+		{
+			name: "inputted i and not insert mode",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 3, Y: 2},
+				mode:         normalMode,
+			},
+			input:    []byte("i"),
+			wantX:    3,
+			wantY:    2,
+			wantOut:  []byte(""),
+			wantMode: insertMode,
+		},
+		{
+			name: "inputted i and insert mode",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 3, Y: 2},
+				mode:         insertMode,
+			},
+			input:    []byte("i"),
+			wantX:    3,
+			wantY:    2,
+			wantOut:  []byte("i"),
+			wantMode: insertMode,
+		},
+		{
+			name: "inputted not i and insert mode",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 3, Y: 2},
+				mode:         insertMode,
+			},
+			input:    []byte("A"),
+			wantX:    3,
+			wantY:    2,
+			wantOut:  []byte("A"),
+			wantMode: insertMode,
+		},
+		{
+			name: "inputted not i and not insert mode",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 3, Y: 2},
+				mode:         normalMode,
+			},
+			input:    []byte("A"),
+			wantX:    3,
+			wantY:    2,
+			wantOut:  []byte("\033[100;0H> X: 3, Y: 2, input: A     \033[2;3H"),
+			wantMode: normalMode,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := new(bytes.Buffer)
+			w := &Window{
+				Size:         tt.fields.Size,
+				Output:       out,
+				FileContents: tt.fields.FileContents,
+				position:     tt.fields.position,
+				mode:         tt.fields.mode,
+			}
+			w.InputtedOther(tt.input)
+			if tt.wantX != w.position.X || tt.wantY != w.position.Y {
+				t.Errorf("got: X= %d, Y=%d  want: X=%d, Y=%d", w.position.X, w.position.Y, tt.wantX, tt.wantY)
+			}
+			if out.String() != string(tt.wantOut) {
+				t.Errorf("got: %v, want:  %v", out.Bytes(), tt.wantOut)
+			}
+			if tt.wantMode != w.mode {
+				t.Errorf("got: mode=%d, want: mode=%d", w.mode, tt.wantMode)
+			}
+		})
+	}
+}
 
 func TestWindow_PrintFileContents(t *testing.T) {
 	type fields struct {
