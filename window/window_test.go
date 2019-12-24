@@ -53,6 +53,23 @@ func TestWindow_IsInsertMode(t *testing.T) {
 	}
 }
 
+func TestWindow_SetNormalMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		wantMode int
+	}{
+		{name: "normal case", wantMode: normalMode},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{}
+			if w.SetNormalMode(); tt.wantMode != w.mode {
+				t.Errorf("got: mode=%d, want: mode=%d", w.mode, tt.wantMode)
+			}
+		})
+	}
+}
+
 func TestWindow_InputtedUp(t *testing.T) {
 	type fields struct {
 		Size         Size

@@ -57,6 +57,10 @@ func (w *Window) IsInsertMode() bool {
 	return false
 }
 
+func (w *Window) SetNormalMode() {
+	w.mode = normalMode
+}
+
 func (w *Window) InputtedUp() {
 	// if cursor is top, don't move
 	if w.position.Y == 1 {
