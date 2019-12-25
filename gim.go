@@ -77,7 +77,11 @@ func main() {
 				case syscall.SIGWINCH:
 					// In raw mode, the file content view will be corrupted,
 					// so return to normal mode.
-					terminal.Restore(syscall.Stdin, normalState)
+					err = terminal.Restore(syscall.Stdin, normalState)
+					if err != nil {
+						fmt.Printf("restore raw error: %v\n", err)
+						os.Exit(ExitError)
+					}
 					err := win.SetSize()
 					if err != nil {
 						fmt.Printf("set window sieze error: %v", err)
@@ -102,7 +106,7 @@ func main() {
 				normalState, err = terminal.MakeRaw(syscall.Stdin)
 				if err != nil {
 					fmt.Printf("make raw error: %v\n", err)
-					os.Exit(ExitError)
+					exitChan <- 1
 				}
 				b := <-bufCh
 				switch win.GetKey(b) {
@@ -118,6 +122,11 @@ func main() {
 					exitChan <- 130
 				case prompt.NotDefined:
 					win.InputtedOther(b)
+				}
+				err = terminal.Restore(syscall.Stdin, normalState)
+				if err != nil {
+					fmt.Printf("restore raw error: %v\n", err)
+					os.Exit(ExitError)
 				}
 			}
 		}()

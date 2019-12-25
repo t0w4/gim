@@ -77,7 +77,7 @@ func (w *Window) InputtedUp() {
 	}
 	w.position.MoveUp(1)
 	fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, Up    ", w.Row, 0, w.position.X, w.position.Y)
-	fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
+	w.MoveCursorToCurrentPosition()
 }
 
 func (w *Window) InputtedDown() {
@@ -93,23 +93,23 @@ func (w *Window) InputtedDown() {
 	}
 	w.position.MoveDown(1)
 	fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, Down  ", w.Row, 0, w.position.X, w.position.Y)
-	fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
+	w.MoveCursorToCurrentPosition()
 }
 
 func (w *Window) InputtedLeft() {
 	w.position.MoveLeft(1)
 	fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, Left  ", w.Row, 0, w.position.X, w.position.Y)
-	fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
+	w.MoveCursorToCurrentPosition()
 }
 
 func (w *Window) InputtedRight() {
 	if len(w.FileContents[w.position.Y-1]) <= w.position.X {
-		fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
+		w.MoveCursorToCurrentPosition()
 		return
 	}
 	w.position.MoveRight(1)
 	fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, Right", w.Row, 0, w.position.X, w.position.Y)
-	fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
+	w.MoveCursorToCurrentPosition()
 }
 
 func (w *Window) InputtedOther(b []byte) {
@@ -121,7 +121,7 @@ func (w *Window) InputtedOther(b []byte) {
 		fmt.Fprintf(w.Output, string(b))
 	} else {
 		fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, input: %s     ", w.Row, 0, w.position.X, w.position.Y, string(b))
-		fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
+		w.MoveCursorToCurrentPosition()
 	}
 }
 
@@ -155,7 +155,21 @@ func (w *Window) PrintFileContents() {
 			fmt.Fprintf(w.Output, "%s\n", w.FileContents[i])
 		}
 	}
-	fmt.Fprint(w.Output, "\033[H")
+	w.MoveCursorToCurrentPosition()
+}
+
+//func (w *Window) PrintInputWord(word []byte, row int) {
+//	var printRow int
+//	if row > w.Row {
+//		printRow = w.Row
+//	} else {
+//		printRow = row
+//	}
+//	fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, input: %s     ", printRow, 0, w.position.X, w.position.Y, string(word))
+//}
+//
+func (w *Window) MoveCursorToCurrentPosition() {
+	fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
 }
 
 func (w *Window) ReadBuffer(bufCh chan []byte) {

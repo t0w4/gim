@@ -516,6 +516,7 @@ func TestWindow_PrintFileContents(t *testing.T) {
 		Size         Size
 		Output       io.Writer
 		FileContents [][]byte
+		position     Position
 	}
 	tests := []struct {
 		name   string
@@ -527,24 +528,36 @@ func TestWindow_PrintFileContents(t *testing.T) {
 			fields: fields{
 				Size:         Size{Row: 4, Column: 100},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position: Position{
+					X: 2,
+					Y: 3,
+				},
 			},
-			want: []byte("\033[H\033[2JHello World!\nI am bob\n\n\033[H"),
+			want: []byte("\033[H\033[2JHello World!\nI am bob\n\n\033[3;2H"),
 		},
 		{
 			name: "file row + 1 == window row",
 			fields: fields{
 				Size:         Size{Row: 3, Column: 100},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position: Position{
+					X: 1,
+					Y: 2,
+				},
 			},
-			want: []byte("\033[H\033[2JHello World!\nI am bob\n\033[H"),
+			want: []byte("\033[H\033[2JHello World!\nI am bob\n\033[2;1H"),
 		},
 		{
 			name: "file row  == window row",
 			fields: fields{
 				Size:         Size{Row: 2, Column: 100},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position: Position{
+					X: 3,
+					Y: 2,
+				},
 			},
-			want: []byte("\033[H\033[2JHello World!\n\033[H"),
+			want: []byte("\033[H\033[2JHello World!\n\033[2;3H"),
 		},
 	}
 	for _, tt := range tests {
@@ -554,6 +567,7 @@ func TestWindow_PrintFileContents(t *testing.T) {
 				Size:         tt.fields.Size,
 				Output:       out,
 				FileContents: tt.fields.FileContents,
+				position:     tt.fields.position,
 			}
 
 			if w.PrintFileContents(); out.String() != string(tt.want) {
