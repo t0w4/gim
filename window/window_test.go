@@ -447,9 +447,9 @@ func TestWindow_InputtedOther(t *testing.T) {
 				mode:         insertMode,
 			},
 			input:    []byte("i"),
-			wantX:    3,
+			wantX:    4,
 			wantY:    2,
-			wantOut:  []byte("i"),
+			wantOut:  []byte("\033[2;0HI iam bob\033[2;4H"),
 			wantMode: insertMode,
 		},
 		{
@@ -464,9 +464,9 @@ func TestWindow_InputtedOther(t *testing.T) {
 				mode:         insertMode,
 			},
 			input:    []byte("A"),
-			wantX:    3,
+			wantX:    4,
 			wantY:    2,
-			wantOut:  []byte("A"),
+			wantOut:  []byte("\033[2;0HI Aam bob\033[2;4H"),
 			wantMode: insertMode,
 		},
 		{

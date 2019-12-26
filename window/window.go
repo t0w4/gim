@@ -118,7 +118,12 @@ func (w *Window) InputtedOther(b []byte) {
 		return
 	}
 	if w.IsInsertMode() {
-		fmt.Fprintf(w.Output, string(b))
+		be := w.FileContents[w.position.Y-1][:w.position.X-1]
+		af := w.FileContents[w.position.Y-1][w.position.X-1:]
+		w.FileContents[w.position.Y-1] = []byte(string(be) + string(b) + string(af))
+		w.position.MoveRight(1)
+		fmt.Fprintf(w.Output, "\033[%d;%dH%s", w.position.Y, 0, string(w.FileContents[w.position.Y-1]))
+		w.MoveCursorToCurrentPosition()
 	} else {
 		fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, input: %s     ", w.Row, 0, w.position.X, w.position.Y, string(b))
 		w.MoveCursorToCurrentPosition()
@@ -158,16 +163,6 @@ func (w *Window) PrintFileContents() {
 	w.MoveCursorToCurrentPosition()
 }
 
-//func (w *Window) PrintInputWord(word []byte, row int) {
-//	var printRow int
-//	if row > w.Row {
-//		printRow = w.Row
-//	} else {
-//		printRow = row
-//	}
-//	fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, input: %s     ", printRow, 0, w.position.X, w.position.Y, string(word))
-//}
-//
 func (w *Window) MoveCursorToCurrentPosition() {
 	fmt.Fprintf(w.Output, "\033[%d;%dH", w.position.Y, w.position.X)
 }
