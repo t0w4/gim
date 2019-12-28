@@ -75,6 +75,7 @@ func TestWindow_InputtedUp(t *testing.T) {
 		Size         Size
 		FileContents [][]byte
 		position     Position
+		mode         int
 	}
 	tests := []struct {
 		name    string
@@ -92,6 +93,7 @@ func TestWindow_InputtedUp(t *testing.T) {
 				},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
 				position:     Position{X: 1, Y: 1},
+				mode:         normalMode,
 			},
 			wantX:   1,
 			wantY:   1,
@@ -106,6 +108,7 @@ func TestWindow_InputtedUp(t *testing.T) {
 				},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
 				position:     Position{X: 7, Y: 3},
+				mode:         normalMode,
 			},
 			wantX:   7,
 			wantY:   2,
@@ -120,13 +123,14 @@ func TestWindow_InputtedUp(t *testing.T) {
 				},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
 				position:     Position{X: 8, Y: 3},
+				mode:         normalMode,
 			},
 			wantX:   8,
 			wantY:   2,
 			wantOut: []byte("\033[100;0H> X: 8, Y: 2, Up    \033[2;8H"),
 		},
 		{
-			name: "Upper character length is less than current X (not zero)",
+			name: "Upper character length is less than current X (not zero), normal mode",
 			fields: fields{
 				Size: Size{
 					Row:    100,
@@ -134,10 +138,26 @@ func TestWindow_InputtedUp(t *testing.T) {
 				},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
 				position:     Position{X: 10, Y: 3},
+				mode:         normalMode,
 			},
 			wantX:   8,
 			wantY:   2,
 			wantOut: []byte("\033[100;0H> X: 8, Y: 2, Up    \033[2;8H"),
+		},
+		{
+			name: "Upper character length is less than current X (not zero), insert mode",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 10, Y: 3},
+				mode:         insertMode,
+			},
+			wantX:   9,
+			wantY:   2,
+			wantOut: []byte("\033[100;0H> X: 9, Y: 2, Up    \033[2;9H"),
 		},
 		{
 			name: "Upper character length is less than current X (zero)",
@@ -148,6 +168,7 @@ func TestWindow_InputtedUp(t *testing.T) {
 				},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte(""), []byte("This is a pen!")},
 				position:     Position{X: 10, Y: 3},
+				mode:         normalMode,
 			},
 			wantX:   1,
 			wantY:   2,
@@ -162,6 +183,7 @@ func TestWindow_InputtedUp(t *testing.T) {
 				Output:       out,
 				FileContents: tt.fields.FileContents,
 				position:     tt.fields.position,
+				mode:         tt.fields.mode,
 			}
 			w.InputtedUp()
 			if tt.wantX != w.position.X || tt.wantY != w.position.Y {
@@ -179,6 +201,7 @@ func TestWindow_InputtedDown(t *testing.T) {
 		Size         Size
 		FileContents [][]byte
 		position     Position
+		mode         int
 	}
 	tests := []struct {
 		name    string
@@ -196,6 +219,7 @@ func TestWindow_InputtedDown(t *testing.T) {
 				},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
 				position:     Position{X: 1, Y: 2},
+				mode:         normalMode,
 			},
 			wantX:   1,
 			wantY:   2,
@@ -210,6 +234,7 @@ func TestWindow_InputtedDown(t *testing.T) {
 				},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
 				position:     Position{X: 7, Y: 1},
+				mode:         normalMode,
 			},
 			wantX:   7,
 			wantY:   2,
@@ -224,13 +249,14 @@ func TestWindow_InputtedDown(t *testing.T) {
 				},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
 				position:     Position{X: 8, Y: 1},
+				mode:         normalMode,
 			},
 			wantX:   8,
 			wantY:   2,
 			wantOut: []byte("\033[100;0H> X: 8, Y: 2, Down  \033[2;8H"),
 		},
 		{
-			name: "Lower character length is less than current X (not zero)",
+			name: "Lower character length is less than current X (not zero), normal mode",
 			fields: fields{
 				Size: Size{
 					Row:    100,
@@ -238,10 +264,26 @@ func TestWindow_InputtedDown(t *testing.T) {
 				},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
 				position:     Position{X: 10, Y: 1},
+				mode:         normalMode,
 			},
 			wantX:   8,
 			wantY:   2,
 			wantOut: []byte("\033[100;0H> X: 8, Y: 2, Down  \033[2;8H"),
+		},
+		{
+			name: "Lower character length is less than current X (not zero), insert mode",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 10, Y: 1},
+				mode:         insertMode,
+			},
+			wantX:   9,
+			wantY:   2,
+			wantOut: []byte("\033[100;0H> X: 9, Y: 2, Down  \033[2;9H"),
 		},
 		{
 			name: "Upper character length is less than current X (zero)",
@@ -252,6 +294,7 @@ func TestWindow_InputtedDown(t *testing.T) {
 				},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte(""), []byte("This is a pen!")},
 				position:     Position{X: 10, Y: 1},
+				mode:         normalMode,
 			},
 			wantX:   1,
 			wantY:   2,
@@ -266,6 +309,7 @@ func TestWindow_InputtedDown(t *testing.T) {
 				Output:       out,
 				FileContents: tt.fields.FileContents,
 				position:     tt.fields.position,
+				mode:         tt.fields.mode,
 			}
 			w.InputtedDown()
 			if tt.wantX != w.position.X || tt.wantY != w.position.Y {
@@ -345,6 +389,7 @@ func TestWindow_InputtedRight(t *testing.T) {
 		Size         Size
 		FileContents [][]byte
 		position     Position
+		mode         int
 	}
 	tests := []struct {
 		name    string
@@ -354,7 +399,7 @@ func TestWindow_InputtedRight(t *testing.T) {
 		wantOut []byte
 	}{
 		{
-			name: "X=character length",
+			name: "X=character length, normal mode",
 			fields: fields{
 				Size: Size{
 					Row:    100,
@@ -362,10 +407,26 @@ func TestWindow_InputtedRight(t *testing.T) {
 				},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
 				position:     Position{X: 8, Y: 2},
+				mode:         normalMode,
 			},
 			wantX:   8,
 			wantY:   2,
 			wantOut: []byte("\033[2;8H"),
+		},
+		{
+			name: "X=character length, insert mode",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 8, Y: 2},
+				mode:         insertMode,
+			},
+			wantX:   9,
+			wantY:   2,
+			wantOut: []byte("\033[100;0H> X: 9, Y: 2, Right\033[2;9H"),
 		},
 		{
 			name: "X<character length",
@@ -376,6 +437,7 @@ func TestWindow_InputtedRight(t *testing.T) {
 				},
 				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
 				position:     Position{X: 3, Y: 2},
+				mode:         normalMode,
 			},
 			wantX:   4,
 			wantY:   2,
@@ -390,6 +452,7 @@ func TestWindow_InputtedRight(t *testing.T) {
 				Output:       out,
 				FileContents: tt.fields.FileContents,
 				position:     tt.fields.position,
+				mode:         tt.fields.mode,
 			}
 			w.InputtedRight()
 			if tt.wantX != w.position.X || tt.wantY != w.position.Y {

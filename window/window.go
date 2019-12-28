@@ -72,7 +72,13 @@ func (w *Window) InputtedUp() {
 		if len(w.FileContents[w.position.Y-2]) == 0 {
 			w.position.X = 1
 		} else {
-			w.position.X = len(w.FileContents[w.position.Y-2])
+			var limitX int
+			if w.IsInsertMode() {
+				limitX = len(w.FileContents[w.position.Y-2]) + 1
+			} else {
+				limitX = len(w.FileContents[w.position.Y-2])
+			}
+			w.position.X = limitX
 		}
 	}
 	w.position.MoveUp(1)
@@ -88,7 +94,13 @@ func (w *Window) InputtedDown() {
 		if len(w.FileContents[w.position.Y]) == 0 {
 			w.position.X = 1
 		} else {
-			w.position.X = len(w.FileContents[w.position.Y])
+			var limitX int
+			if w.IsInsertMode() {
+				limitX = len(w.FileContents[w.position.Y]) + 1
+			} else {
+				limitX = len(w.FileContents[w.position.Y])
+			}
+			w.position.X = limitX
 		}
 	}
 	w.position.MoveDown(1)
@@ -103,7 +115,13 @@ func (w *Window) InputtedLeft() {
 }
 
 func (w *Window) InputtedRight() {
-	if len(w.FileContents[w.position.Y-1]) <= w.position.X {
+	var limitX int
+	if w.IsInsertMode() {
+		limitX = len(w.FileContents[w.position.Y-1]) + 1
+	} else {
+		limitX = len(w.FileContents[w.position.Y-1])
+	}
+	if limitX <= w.position.X {
 		w.MoveCursorToCurrentPosition()
 		return
 	}
