@@ -53,6 +53,30 @@ func TestWindow_IsInsertMode(t *testing.T) {
 	}
 }
 
+func TestWindow_IsNormalModeMode(t *testing.T) {
+	type fields struct {
+		mode int
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{name: "normal mode", fields: fields{mode: normalMode}, want: true},
+		{name: "insert mode", fields: fields{mode: insertMode}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{
+				mode: tt.fields.mode,
+			}
+			if got := w.IsNormalMode(); got != tt.want {
+				t.Errorf("IsInsertMode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestWindow_SetNormalMode(t *testing.T) {
 	tests := []struct {
 		name     string

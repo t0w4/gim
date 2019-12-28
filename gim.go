@@ -120,6 +120,8 @@ func main() {
 					win.InputtedRight()
 				case prompt.ControlC:
 					exitChan <- 130
+				case prompt.Escape:
+					win.SetNormalMode()
 				case prompt.NotDefined:
 					win.InputtedOther(b)
 				}

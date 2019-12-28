@@ -57,6 +57,13 @@ func (w *Window) IsInsertMode() bool {
 	return false
 }
 
+func (w *Window) IsNormalMode() bool {
+	if w.mode == normalMode {
+		return true
+	}
+	return false
+}
+
 func (w *Window) SetNormalMode() {
 	w.mode = normalMode
 }
@@ -131,19 +138,20 @@ func (w *Window) InputtedRight() {
 }
 
 func (w *Window) InputtedOther(b []byte) {
-	if string(b) == "i" && !w.IsInsertMode() {
-		w.mode = insertMode
-		return
-	}
-	if w.IsInsertMode() {
+	switch w.mode {
+	case normalMode:
+		if string(b) == "i" {
+			w.mode = insertMode
+			return
+		}
+		fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, input: %s     ", w.Row, 0, w.position.X, w.position.Y, string(b))
+		w.MoveCursorToCurrentPosition()
+	case insertMode:
 		be := w.FileContents[w.position.Y-1][:w.position.X-1]
 		af := w.FileContents[w.position.Y-1][w.position.X-1:]
 		w.FileContents[w.position.Y-1] = []byte(string(be) + string(b) + string(af))
 		w.position.MoveRight(1)
 		fmt.Fprintf(w.Output, "\033[%d;%dH%s", w.position.Y, 0, string(w.FileContents[w.position.Y-1]))
-		w.MoveCursorToCurrentPosition()
-	} else {
-		fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, input: %s     ", w.Row, 0, w.position.X, w.position.Y, string(b))
 		w.MoveCursorToCurrentPosition()
 	}
 }
