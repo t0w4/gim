@@ -24,11 +24,15 @@ var asciiSequences = []*prompt.ASCIICode{
 	{Key: prompt.Right, ASCIICode: []byte{0x1b, 0x5b, 0x43}},
 	{Key: prompt.Left, ASCIICode: []byte{0x1b, 0x5b, 0x44}},
 	{Key: prompt.ControlC, ASCIICode: []byte{0x3}},
+	{Key: prompt.Delete, ASCIICode: []byte{0x1b, 0x5b, 0x33, 0x7e}},
+	{Key: prompt.Backspace, ASCIICode: []byte{0x7f}},
+	{Key: prompt.Enter, ASCIICode: []byte{0xd}},
 }
 
 const (
 	normalMode = iota
 	insertMode
+	commandMode
 )
 
 type Window struct {
@@ -38,6 +42,7 @@ type Window struct {
 	FileContents [][]byte
 	position     Position
 	mode         int // ex) insert mode
+	command      []byte
 }
 
 func NewWindow(input *os.File, output io.Writer) *Window {
@@ -47,6 +52,7 @@ func NewWindow(input *os.File, output io.Writer) *Window {
 		FileContents: nil,
 		position:     Position{X: 1, Y: 1},
 		mode:         normalMode,
+		command:      []byte{},
 	}
 }
 
@@ -64,8 +70,51 @@ func (w *Window) IsNormalMode() bool {
 	return false
 }
 
+func (w *Window) IsCommandMode() bool {
+	if w.mode == commandMode {
+		return true
+	}
+	return false
+}
+
+func (w *Window) IsCommandNotTyped() bool {
+	if len(w.command) == 0 {
+		return true
+	}
+	return false
+}
+
+func (w *Window) SetInsertMode() {
+	w.mode = insertMode
+}
+
 func (w *Window) SetNormalMode() {
 	w.mode = normalMode
+}
+
+func (w *Window) SetCommandMode() {
+	w.mode = commandMode
+}
+
+func (w *Window) AddCommand(b []byte) {
+	w.command = append(w.command, b...)
+}
+
+func (w *Window) RemoveCommand() {
+	if len(w.command) > 0 {
+		w.command = w.command[:len(w.command)-1]
+	}
+}
+
+func (w *Window) ResetCommand() {
+	w.command = []byte{}
+}
+
+func (w *Window) TypedCommand() string {
+	return string(w.command)
+}
+
+func (w *Window) ExecuteCommand() {
 }
 
 func (w *Window) InputtedUp() {
@@ -141,7 +190,12 @@ func (w *Window) InputtedOther(b []byte) {
 	switch w.mode {
 	case normalMode:
 		if string(b) == "i" {
-			w.mode = insertMode
+			w.SetInsertMode()
+			return
+		}
+		if string(b) == ":" {
+			w.SetCommandMode()
+			fmt.Fprintf(w.Output, "\033[%d;%dH:", w.Size.Row, 0)
 			return
 		}
 		fmt.Fprintf(w.Output, "\033[%d;%dH> X: %d, Y: %d, input: %s     ", w.Row, 0, w.position.X, w.position.Y, string(b))

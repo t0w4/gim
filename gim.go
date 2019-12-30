@@ -109,21 +109,50 @@ func main() {
 					exitChan <- 1
 				}
 				b := <-bufCh
-				switch win.GetKey(b) {
-				case prompt.Up:
-					win.InputtedUp()
-				case prompt.Down:
-					win.InputtedDown()
-				case prompt.Left:
-					win.InputtedLeft()
-				case prompt.Right:
-					win.InputtedRight()
-				case prompt.ControlC:
-					exitChan <- 130
-				case prompt.Escape:
-					win.SetNormalMode()
-				case prompt.NotDefined:
-					win.InputtedOther(b)
+				if win.IsCommandMode() {
+					switch win.GetKey(b) {
+					case prompt.Up, prompt.Down, prompt.Left, prompt.Right:
+					case prompt.ControlC:
+						exitChan <- 130
+					case prompt.Escape:
+						win.SetNormalMode()
+						win.MoveCursorToCurrentPosition()
+					case prompt.Delete, prompt.Backspace:
+						if win.IsCommandNotTyped() {
+							win.SetNormalMode()
+							win.MoveCursorToCurrentPosition()
+						} else {
+							win.RemoveCommand()
+							fmt.Fprintf(win.Output, "\033[2K")
+							fmt.Fprintf(win.Output, "\033[%d;%dH:%s", win.Row, 0, win.TypedCommand())
+						}
+					case prompt.Enter:
+						win.ExecuteCommand()
+						win.ResetCommand()
+						fmt.Fprintf(win.Output, "\033[2K")
+						win.SetNormalMode()
+						win.MoveCursorToCurrentPosition()
+					default:
+						win.AddCommand(b)
+						fmt.Fprintf(win.Output, "\033[%d;%dH:%s", win.Row, 0, win.TypedCommand())
+					}
+				} else {
+					switch win.GetKey(b) {
+					case prompt.Up:
+						win.InputtedUp()
+					case prompt.Down:
+						win.InputtedDown()
+					case prompt.Left:
+						win.InputtedLeft()
+					case prompt.Right:
+						win.InputtedRight()
+					case prompt.ControlC:
+						exitChan <- 130
+					case prompt.Escape:
+						win.SetNormalMode()
+					case prompt.NotDefined:
+						win.InputtedOther(b)
+					}
 				}
 				err = terminal.Restore(syscall.Stdin, normalState)
 				if err != nil {

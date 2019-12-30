@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"reflect"
 	"testing"
 
 	prompt "github.com/c-bata/go-prompt"
@@ -40,6 +41,7 @@ func TestWindow_IsInsertMode(t *testing.T) {
 	}{
 		{name: "normal mode", fields: fields{mode: normalMode}, want: false},
 		{name: "insert mode", fields: fields{mode: insertMode}, want: true},
+		{name: "command mode", fields: fields{mode: commandMode}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -53,7 +55,7 @@ func TestWindow_IsInsertMode(t *testing.T) {
 	}
 }
 
-func TestWindow_IsNormalModeMode(t *testing.T) {
+func TestWindow_IsNormalMode(t *testing.T) {
 	type fields struct {
 		mode int
 	}
@@ -64,6 +66,7 @@ func TestWindow_IsNormalModeMode(t *testing.T) {
 	}{
 		{name: "normal mode", fields: fields{mode: normalMode}, want: true},
 		{name: "insert mode", fields: fields{mode: insertMode}, want: false},
+		{name: "command mode", fields: fields{mode: commandMode}, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -71,7 +74,77 @@ func TestWindow_IsNormalModeMode(t *testing.T) {
 				mode: tt.fields.mode,
 			}
 			if got := w.IsNormalMode(); got != tt.want {
-				t.Errorf("IsInsertMode() = %v, want %v", got, tt.want)
+				t.Errorf("IsNormalMode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestWindow_IsCommandMode(t *testing.T) {
+	type fields struct {
+		mode int
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{name: "normal mode", fields: fields{mode: normalMode}, want: false},
+		{name: "insert mode", fields: fields{mode: insertMode}, want: false},
+		{name: "command mode", fields: fields{mode: commandMode}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{
+				mode: tt.fields.mode,
+			}
+			if got := w.IsCommandMode(); got != tt.want {
+				t.Errorf("IsCommandMode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestWindow_IsCommandNotTyped(t *testing.T) {
+	type fields struct {
+		command []byte
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{name: "not typed", fields: fields{command: []byte{}}, want: true},
+		{name: "typed", fields: fields{command: []byte("wq")}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{
+				command: tt.fields.command,
+			}
+			if got := w.IsCommandNotTyped(); got != tt.want {
+				t.Errorf("IsCommandNotTyped() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestWindow_SetInsertMode(t *testing.T) {
+	type fields struct {
+		mode int
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		wantMode int
+	}{
+		{name: "normal case", fields: fields{mode: normalMode}, wantMode: insertMode},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{mode: tt.fields.mode}
+			if w.SetInsertMode(); tt.wantMode != w.mode {
+				t.Errorf("got: mode=%d, want: mode=%d", w.mode, tt.wantMode)
 			}
 		})
 	}
@@ -89,6 +162,124 @@ func TestWindow_SetNormalMode(t *testing.T) {
 			w := &Window{}
 			if w.SetNormalMode(); tt.wantMode != w.mode {
 				t.Errorf("got: mode=%d, want: mode=%d", w.mode, tt.wantMode)
+			}
+		})
+	}
+}
+
+func TestWindow_SetCommandMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		wantMode int
+	}{
+		{name: "normal case", wantMode: commandMode},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{}
+			if w.SetCommandMode(); tt.wantMode != w.mode {
+				t.Errorf("got: mode=%d, want: mode=%d", w.mode, tt.wantMode)
+			}
+		})
+	}
+}
+
+func TestWindow_AddCommand(t *testing.T) {
+	type fields struct {
+		command []byte
+	}
+	type args struct {
+		b []byte
+	}
+	tests := []struct {
+		name        string
+		fields      fields
+		args        args
+		wantCommand []byte
+	}{
+		{name: "typed", fields: fields{command: []byte("w")}, args: args{[]byte("q")}, wantCommand: []byte("wq")},
+		{name: "not typed", fields: fields{command: []byte{}}, args: args{[]byte("q")}, wantCommand: []byte("q")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{
+				command: tt.fields.command,
+			}
+			if w.AddCommand(tt.args.b); !reflect.DeepEqual(tt.wantCommand, w.command) {
+				t.Errorf("got: command=%s, want: command=%s", w.command, tt.wantCommand)
+			}
+		})
+	}
+}
+
+func TestWindow_RemoveCommand(t *testing.T) {
+	type fields struct {
+		command []byte
+	}
+	tests := []struct {
+		name        string
+		fields      fields
+		wantCommand []byte
+	}{
+		{name: "2 typed", fields: fields{command: []byte("wq")}, wantCommand: []byte("w")},
+		{name: "1 typed", fields: fields{command: []byte("q")}, wantCommand: []byte{}},
+		{name: "not typed", fields: fields{command: []byte{}}, wantCommand: []byte{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{
+				command: tt.fields.command,
+			}
+			if w.RemoveCommand(); !reflect.DeepEqual(tt.wantCommand, w.command) {
+				t.Errorf("got: command=%s, want: command=%s", w.command, tt.wantCommand)
+			}
+		})
+	}
+}
+
+func TestWindow_ResetCommand(t *testing.T) {
+	type fields struct {
+		command []byte
+	}
+	tests := []struct {
+		name        string
+		fields      fields
+		wantCommand []byte
+	}{
+		{name: "typed", fields: fields{command: []byte("wq")}, wantCommand: []byte{}},
+		{name: "not typed", fields: fields{command: []byte{}}, wantCommand: []byte{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{
+				command: tt.fields.command,
+			}
+			if w.ResetCommand(); !reflect.DeepEqual(tt.wantCommand, w.command) {
+				t.Errorf("got: command=%s, want: command=%s", w.command, tt.wantCommand)
+			}
+		})
+	}
+}
+
+func TestWindow_TypedCommand(t *testing.T) {
+	type fields struct {
+		command []byte
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{name: "typed", fields: fields{command: []byte("wq")}, want: "wq"},
+		{name: "blank", fields: fields{command: []byte{}}, want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{
+				command: tt.fields.command,
+			}
+			if got := w.TypedCommand(); got != tt.want {
+				t.Errorf("TypedCommand() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -537,6 +728,40 @@ func TestWindow_InputtedOther(t *testing.T) {
 			wantX:    4,
 			wantY:    2,
 			wantOut:  []byte("\033[2;0HI iam bob\033[2;4H"),
+			wantMode: insertMode,
+		},
+		{
+			name: "inputted : and not insert mode",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 3, Y: 2},
+				mode:         normalMode,
+			},
+			input:    []byte(":"),
+			wantX:    3,
+			wantY:    2,
+			wantOut:  []byte("\033[100;0H:"),
+			wantMode: commandMode,
+		},
+		{
+			name: "inputted : and insert mode",
+			fields: fields{
+				Size: Size{
+					Row:    100,
+					Column: 150,
+				},
+				FileContents: [][]byte{[]byte("Hello World!"), []byte("I am bob")},
+				position:     Position{X: 3, Y: 2},
+				mode:         insertMode,
+			},
+			input:    []byte(":"),
+			wantX:    4,
+			wantY:    2,
+			wantOut:  []byte("\033[2;0HI :am bob\033[2;4H"),
 			wantMode: insertMode,
 		},
 		{
